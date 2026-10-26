@@ -1,0 +1,5 @@
+.venv/
+sample_images/
+*.csv
+.env
+__pycache__/
