@@ -1,4 +1,4 @@
-# Stage 2B: Quality Filter (Blur and Lighting)
+# Current Implementation of Stage 2B: Quality Filter (Blur and Lighting)
 
 ## Purpose and Scope
 The purpose of this script (`filter-images.py`) is to score each equirectangular panorama for blur and lighting, marking them as `keep` or `drop` so that MapSwipe volunteers receive a clean, filtered batch of images. 
