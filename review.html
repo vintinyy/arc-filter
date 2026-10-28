@@ -1,0 +1,72 @@
+"""Build review.html (images sorted by a score, scores shown) and a labels template.
+
+Usage:
+    python make_review_sheet.py --sort blur
+    python make_review_sheet.py --sort brightness
+Then open review.html in your browser.
+"""
+import argparse
+import csv
+import html
+import os
+
+p = argparse.ArgumentParser()
+p.add_argument("--results", default="filter_results.csv")
+p.add_argument("--images", default="sample_images")
+p.add_argument("--sort", choices=["blur", "brightness"], default="blur")
+p.add_argument("--out", default="review.html")
+args = p.parse_args()
+
+key = "blur_score" if args.sort == "blur" else "brightness_mean"
+
+with open(args.results, newline="") as f:
+    rows = list(csv.DictReader(f))
+
+
+def score(r):
+    try:
+        return float(r[key])
+    except (ValueError, KeyError):
+        return -1.0
+
+
+rows.sort(key=score)
+
+cards = []
+for r in rows:
+    iid = r["image_id"]
+    status = "KEPT" if r["kept"] == "True" else "DROPPED " + r["drop_reason"]
+    color = "#2e7d32" if r["kept"] == "True" else "#c62828"
+    cards.append(f"""
+<div class="card">
+  <img src="{html.escape(args.images)}/{html.escape(iid)}.jpg" loading="lazy">
+  <div><b>{html.escape(iid)}</b></div>
+  <div>blur {r.get('blur_score')} | bright {r.get('brightness_mean')}</div>
+  <div>dark {r.get('pct_dark')} | blown {r.get('pct_bright')}</div>
+  <div style="color:{color}"><b>{html.escape(status)}</b></div>
+</div>""")
+
+page = f"""<!doctype html><meta charset="utf-8"><title>Review</title>
+<style>
+body {{ font-family: sans-serif; margin: 12px; }}
+.grid {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+.card {{ width: 320px; font-size: 12px; }}
+.card img {{ width: 320px; height: 160px; object-fit: cover; display: block; }}
+</style>
+<h3>Sorted by {key}, lowest first ({len(rows)} images)</h3>
+<div class="grid">{''.join(cards)}</div>"""
+
+with open(args.out, "w", encoding="utf-8") as f:
+    f.write(page)
+print(f"Wrote {args.out}")
+
+# Labels template (never overwrites your work)
+if not os.path.exists("labels.csv"):
+    with open("labels.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["image_id", "keep", "reason"])
+        for r in rows:
+            w.writerow([r["image_id"], "", ""])
+    print("Wrote labels.csv template (fill in keep = 1 or 0, and a reason for drops)")
+else:
+    print("labels.csv already exists, left untouched")

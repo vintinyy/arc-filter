@@ -55,7 +55,7 @@ def main():
         image_ids = [row["image_id"] for row in csv.DictReader(f)]
 
     fields = ["image_id", "blur_score", "brightness_mean", "pct_dark", "pct_bright",
-              "road_frac", "building_frac", "kept", "drop_reason"]
+              "kept", "drop_reason"]
 
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
@@ -86,8 +86,8 @@ def main():
                 "brightness_mean": round(mean_b, 2),
                 "pct_dark": round(pct_dark, 4),
                 "pct_bright": round(pct_bright, 4),
-                "road_frac": "",       # TODO: segmentation model
-                "building_frac": "",   # TODO: segmentation model
+                #"road_frac": "",       # TODO: segmentation model
+                #"building_frac": "",   # TODO: segmentation model
                 "kept": not reasons,
                 "drop_reason": ";".join(reasons),
             })

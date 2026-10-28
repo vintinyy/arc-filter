@@ -24,19 +24,35 @@ FIELDS = ",".join([
 
 os.makedirs(OUT_DIR, exist_ok=True)
 
-resp = requests.get(
-    "https://graph.mapillary.com/images",
-    headers={"Authorization": f"OAuth {TOKEN}"},
-    params={"bbox": BBOX, "is_pano": "true", "fields": FIELDS, "limit": LIMIT},
-    timeout=30,
-)
-#resp.raise_for_status()
+import itertools
 
-if not resp.ok:
-    print(resp.status_code, resp.text)
-    resp.raise_for_status()
+MIN_LON, MIN_LAT = 98.665, 3.585   # southwest corner of the area you want
+STEP = 0.002                        # tile size, about 200 m
+TILES = 5                           # 5 x 5 = 25 tiles
+TARGET = 150                        # stop once you have this many
 
-images = resp.json().get("data", [])
+images, seen = [], set()
+for i, j in itertools.product(range(TILES), range(TILES)):
+    lon0, lat0 = MIN_LON + i * STEP, MIN_LAT + j * STEP
+    bbox = f"{lon0},{lat0},{lon0 + STEP},{lat0 + STEP}"
+    resp = requests.get(
+        "https://graph.mapillary.com/images",
+        headers={"Authorization": f"OAuth {TOKEN}"},
+        params={"bbox": bbox, "fields": FIELDS, "limit": 50},
+        timeout=30,
+    )
+    if not resp.ok:
+        print(f"Skipping {bbox}: {resp.status_code}")
+        continue
+    for img in resp.json().get("data", []):
+        if img.get("is_pano") and img["id"] not in seen:
+            seen.add(img["id"])
+            images.append(img)
+    print(f"{bbox}: total so far {len(images)}")
+    if len(images) >= TARGET:
+        break
+
+    
 print(f"Got {len(images)} images")
 
 with open("sample_metadata.csv", "w", newline="") as f:
